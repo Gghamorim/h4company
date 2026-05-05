@@ -1,6 +1,4 @@
 Param(
-    [string]$MongoUrl = "mongodb://localhost:27017",
-    [string]$DbName = "test",
     [int]$BackendPort = 8000
 )
 
@@ -11,8 +9,6 @@ $frontendDir = Join-Path $root "frontend"
 $backendCommand = @"
 cd `"$backendDir`"
 . .\.venv\Scripts\Activate
-`$env:MONGO_URL = `"$MongoUrl`"
-`$env:DB_NAME = `"$DbName`"
 uvicorn server:app --reload --host 0.0.0.0 --port $BackendPort
 "@
 
