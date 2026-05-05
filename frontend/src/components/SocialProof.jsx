@@ -1,4 +1,6 @@
-import { Quote, Star } from "lucide-react";
+import { Quote, Star, Users } from "lucide-react";
+import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
 
 const testimonials = [
   {
@@ -19,6 +21,25 @@ const testimonials = [
 ];
 
 export default function SocialProof() {
+  const [statusCount, setStatusCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStatusCount = async () => {
+      try {
+        const data = await api.get('/status');
+        setStatusCount(data.length);
+      } catch (error) {
+        console.log('API not available, using default count');
+        setStatusCount(71); // fallback
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStatusCount();
+  }, []);
+
   return (
     <section
       id="depoimentos"
@@ -49,7 +70,7 @@ export default function SocialProof() {
               <span style={{ opacity: 0.5 }}>★</span>
             </div>
             <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>
-              4.6 · 71 avaliações
+              4.6 · {loading ? "..." : statusCount} {statusCount === 1 ? "avaliação" : "avaliações"}
             </div>
           </div>
 

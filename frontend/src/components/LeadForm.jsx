@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Send, CheckCircle2 } from "lucide-react";
 import { waLink } from "@/lib/company";
+import { api } from "@/lib/api";
 
 const formatPhone = (v) => {
   const d = v.replace(/\D/g, "").slice(0, 11);
@@ -14,6 +15,7 @@ export default function LeadForm() {
   const [form, setForm] = useState({ name: "", phone: "", message: "" });
   const [errors, setErrors] = useState({});
   const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const validate = () => {
     const e = {};
@@ -31,12 +33,28 @@ export default function LeadForm() {
     if (errors[k]) setErrors((p) => ({ ...p, [k]: undefined }));
   };
 
-  const onSubmit = (ev) => {
+  const onSubmit = async (ev) => {
     ev.preventDefault();
     if (!validate()) return;
-    const msg = `Olá, sou *${form.name}*.\nTelefone: ${form.phone}\n\n${form.message}`;
-    window.open(waLink(msg), "_blank");
-    setSent(true);
+
+    setSubmitting(true);
+    try {
+      // Send data to API
+      await api.post('/status', { client_name: form.name });
+
+      // Open WhatsApp
+      const msg = `Olá, sou *${form.name}*.\nTelefone: ${form.phone}\n\n${form.message}`;
+      window.open(waLink(msg), "_blank");
+      setSent(true);
+    } catch (error) {
+      console.log('API not available, proceeding with WhatsApp only');
+      // Still open WhatsApp even if API fails
+      const msg = `Olá, sou *${form.name}*.\nTelefone: ${form.phone}\n\n${form.message}`;
+      window.open(waLink(msg), "_blank");
+      setSent(true);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -297,8 +315,9 @@ export default function LeadForm() {
                 data-testid="form-submit"
                 className="btn-primary"
                 style={{ width: "100%", padding: "18px 28px", fontSize: 16 }}
+                disabled={submitting}
               >
-                Quero minha análise gratuita <Send size={17} />
+                {submitting ? "Enviando..." : "Quero minha análise gratuita"} <Send size={17} />
               </button>
 
               <p
