@@ -1,7 +1,7 @@
 from fastapi import FastAPI, APIRouter
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
+import aiosqlite
 import os
 import logging
 from pathlib import Path
@@ -14,10 +14,8 @@ from datetime import datetime, timezone
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# SQLite database
+DATABASE_URL = os.environ.get('DATABASE_URL', 'status_checks.db')
 
 # Create the main app without a prefix
 app = FastAPI()
@@ -28,7 +26,7 @@ api_router = APIRouter(prefix="/api")
 
 # Define Models
 class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
+    model_config = ConfigDict(extra="ignore")
     
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     client_name: str
@@ -37,6 +35,26 @@ class StatusCheck(BaseModel):
 class StatusCheckCreate(BaseModel):
     client_name: str
 
+# Database functions
+async def init_db():
+    async with aiosqlite.connect(DATABASE_URL) as db:
+        await db.execute('''
+            CREATE TABLE IF NOT EXISTS status_checks (
+                id TEXT PRIMARY KEY,
+                client_name TEXT NOT NULL,
+                timestamp TEXT NOT NULL
+            )
+        ''')
+        await db.commit()
+
+async def get_db():
+    return await aiosqlite.connect(DATABASE_URL)
+
+# Initialize database on startup
+@app.on_event("startup")
+async def startup_event():
+    await init_db()
+
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
@@ -44,25 +62,30 @@ async def root():
 
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
+    status_obj = StatusCheck(client_name=input.client_name)
     
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
+    async with aiosqlite.connect(DATABASE_URL) as db:
+        await db.execute(
+            'INSERT INTO status_checks (id, client_name, timestamp) VALUES (?, ?, ?)',
+            (status_obj.id, status_obj.client_name, status_obj.timestamp.isoformat())
+        )
+        await db.commit()
     
-    _ = await db.status_checks.insert_one(doc)
     return status_obj
 
 @api_router.get("/status", response_model=List[StatusCheck])
 async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
+    async with aiosqlite.connect(DATABASE_URL) as db:
+        cursor = await db.execute('SELECT id, client_name, timestamp FROM status_checks ORDER BY timestamp DESC')
+        rows = await cursor.fetchall()
     
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
+    status_checks = []
+    for row in rows:
+        status_checks.append(StatusCheck(
+            id=row[0],
+            client_name=row[1],
+            timestamp=datetime.fromisoformat(row[2])
+        ))
     
     return status_checks
 

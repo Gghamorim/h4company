@@ -9,8 +9,7 @@
     {
       "name": "production",
       "environmentVariables": {
-        "MONGO_URL": "mongodb://localhost:27017",
-        "DB_NAME": "h4company_prod",
+        "DATABASE_URL": "status_checks.db",
         "CORS_ORIGINS": "*"
       }
     }
