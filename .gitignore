@@ -27,6 +27,7 @@ next-env.d.ts
 
 # Production builds
 /build
+frontend/build/
 dist/
 dist
 
@@ -95,6 +96,7 @@ chainlit.md
 .vercel
 
 # Data and databases
+*.db
 agenthub/agents/youtube/db
 
 # Archive files and large assets
