@@ -14,8 +14,8 @@ from datetime import datetime, timezone
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# SQLite database
-DATABASE_URL = os.environ.get('DATABASE_URL', 'status_checks.db')
+# SQLite database - use /tmp for Vercel serverless
+DATABASE_URL = os.environ.get('DATABASE_URL', '/tmp/status_checks.db')
 
 # Create the main app without a prefix
 app = FastAPI()
@@ -27,7 +27,7 @@ api_router = APIRouter(prefix="/api")
 # Define Models
 class StatusCheck(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    
+
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     client_name: str
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -63,14 +63,14 @@ async def root():
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):
     status_obj = StatusCheck(client_name=input.client_name)
-    
+
     async with aiosqlite.connect(DATABASE_URL) as db:
         await db.execute(
             'INSERT INTO status_checks (id, client_name, timestamp) VALUES (?, ?, ?)',
             (status_obj.id, status_obj.client_name, status_obj.timestamp.isoformat())
         )
         await db.commit()
-    
+
     return status_obj
 
 @api_router.get("/status", response_model=List[StatusCheck])
@@ -78,7 +78,7 @@ async def get_status_checks():
     async with aiosqlite.connect(DATABASE_URL) as db:
         cursor = await db.execute('SELECT id, client_name, timestamp FROM status_checks ORDER BY timestamp DESC')
         rows = await cursor.fetchall()
-    
+
     status_checks = []
     for row in rows:
         status_checks.append(StatusCheck(
@@ -86,7 +86,7 @@ async def get_status_checks():
             client_name=row[1],
             timestamp=datetime.fromisoformat(row[2])
         ))
-    
+
     return status_checks
 
 # Include the router in the main app
@@ -99,6 +99,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Vercel handler
+from mangum import Mangum
+
+handler = Mangum(app)
 
 # Configure logging
 logging.basicConfig(
