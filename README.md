@@ -22,7 +22,6 @@ Uma landing page moderna para a empresa H4 Company, construída com React (front
 ### Pré-requisitos
 - Node.js 18+
 - Python 3.11+
-- MongoDB (local ou Atlas)
 
 ### Instalação e Execução
 
@@ -54,6 +53,24 @@ Uma landing page moderna para a empresa H4 Company, construída com React (front
    npm install
    npm start
    ```
+
+### 🔧 Configuração da API
+
+O frontend se conecta automaticamente com o backend local. Para produção:
+
+1. **Arquivo `.env.local`** (desenvolvimento):
+   ```
+   REACT_APP_API_URL=http://localhost:8000/api
+   ```
+
+2. **Arquivo `.env.production`** (produção):
+   ```
+   REACT_APP_API_URL=https://SEU-BACKEND-VERCEL-URL.vercel.app/api
+   ```
+
+3. **Variáveis de ambiente no Vercel**:
+   - Configure `REACT_APP_API_URL` no dashboard do Vercel
+   - Ponto para a URL do seu backend no Vercel
 
 ## 🌐 Deploy
 
