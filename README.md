@@ -13,7 +13,7 @@ Uma landing page moderna para a empresa H4 Company, construída com React (front
 
 ### Backend
 - FastAPI (Python)
-- MongoDB com Motor
+- SQLite com aiosqlite (async)
 - Uvicorn server
 - Pydantic para validação
 
@@ -80,9 +80,8 @@ Uma landing page moderna para a empresa H4 Company, construída com React (front
    - Selecione o repositório `h4company-main`
 
 3. **Configure variáveis de ambiente**
-   - MONGO_URL: Sua string de conexão MongoDB
-   - DB_NAME: Nome do banco (ex: h4company_prod)
-   - CORS_ORIGINS: URL do frontend (ex: https://seu-usuario.github.io)
+   - `DATABASE_URL`: `status_checks.db` (SQLite)
+   - `CORS_ORIGINS`: URL do frontend (ex: https://seu-usuario.github.io)
 
 4. **Deploy automático**
    - Railway detectará o `railway.json` e fará deploy automático
